@@ -1,27 +1,25 @@
-import React, { useState } from 'react';
-import { Brain, Moon, Focus, Heart, Zap, Palette, Shield, Waves, Volume2, Play, Pause } from 'lucide-react';
+import { useState } from 'react';
+import { Brain, Moon, Focus, Heart, Zap, Palette, Volume2, Play, Pause } from 'lucide-react';
 
 const BinauralBeatsWizard = () => {
   const [selectedEffect, setSelectedEffect] = useState('relaxation');
-  
+ 
   const [config, setConfig] = useState({
     carrierFreq: 220,
     binauralBeat: 10,
     sessionDuration: 20
   });
-
   // Audio state
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [binauralVolume, setBinauralVolume] = useState(0.7);
   const [audioContext, setAudioContext] = useState(null);
   const [oscillators, setOscillators] = useState(null);
-  
+ 
   // Timer state
   const [sessionTime, setSessionTime] = useState(20);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [timerInterval, setTimerInterval] = useState(null);
-
   const effects = [
     {
       id: 'relaxation',
@@ -96,23 +94,19 @@ const BinauralBeatsWizard = () => {
       beatRange: [6, 8]
     }
   ];
-
   const selectedEffectData = effects.find(e => e.id === selectedEffect);
-
-  const updateConfig = (key, value) => {
+  const updateConfig = (key: keyof typeof config, value: number) => {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
-
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-
   const startTimer = () => {
     const totalSeconds = sessionTime * 60;
     setTimeRemaining(totalSeconds);
-    
+   
     const interval = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
@@ -123,10 +117,9 @@ const BinauralBeatsWizard = () => {
         return prev - 1;
       });
     }, 1000);
-    
+   
     setTimerInterval(interval);
   };
-
   const stopTimer = () => {
     if (timerInterval) {
       clearInterval(timerInterval);
@@ -134,26 +127,24 @@ const BinauralBeatsWizard = () => {
     }
     setTimeRemaining(0);
   };
-
   const pauseAudio = () => {
     if (oscillators && oscillators.leftGain && oscillators.rightGain && !isPaused) {
       oscillators.leftGain.gain.setValueAtTime(0, audioContext.currentTime);
       oscillators.rightGain.gain.setValueAtTime(0, audioContext.currentTime);
       setIsPaused(true);
-      
+     
       if (timerInterval) {
         clearInterval(timerInterval);
         setTimerInterval(null);
       }
     }
   };
-
   const resumeAudio = () => {
     if (oscillators && oscillators.leftGain && oscillators.rightGain && isPaused) {
       oscillators.leftGain.gain.setValueAtTime(binauralVolume * 0.3, audioContext.currentTime);
       oscillators.rightGain.gain.setValueAtTime(binauralVolume * 0.3, audioContext.currentTime);
       setIsPaused(false);
-      
+     
       const interval = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
@@ -164,11 +155,10 @@ const BinauralBeatsWizard = () => {
           return prev - 1;
         });
       }, 1000);
-      
+     
       setTimerInterval(interval);
     }
   };
-
   const togglePlayPause = () => {
     if (!isPlaying) {
       startAudio();
@@ -178,61 +168,52 @@ const BinauralBeatsWizard = () => {
       pauseAudio();
     }
   };
-
   const startAudio = () => {
     try {
       const context = new (window.AudioContext || window.webkitAudioContext)();
       if (context.state === 'suspended') {
         context.resume();
       }
-
       const leftOsc = context.createOscillator();
       const rightOsc = context.createOscillator();
       const leftGain = context.createGain();
       const rightGain = context.createGain();
       const leftPan = context.createStereoPanner();
       const rightPan = context.createStereoPanner();
-
       leftOsc.type = 'sine';
       rightOsc.type = 'sine';
       leftOsc.frequency.setValueAtTime(config.carrierFreq, context.currentTime);
       rightOsc.frequency.setValueAtTime(config.carrierFreq + config.binauralBeat, context.currentTime);
-
       leftPan.pan.setValueAtTime(-1, context.currentTime);
       rightPan.pan.setValueAtTime(1, context.currentTime);
-
       leftGain.gain.setValueAtTime(0, context.currentTime);
       rightGain.gain.setValueAtTime(0, context.currentTime);
       leftGain.gain.exponentialRampToValueAtTime(binauralVolume * 0.3, context.currentTime + 1.5);
       rightGain.gain.exponentialRampToValueAtTime(binauralVolume * 0.3, context.currentTime + 1.5);
-
       leftOsc.connect(leftGain);
       rightOsc.connect(rightGain);
       leftGain.connect(leftPan);
       rightGain.connect(rightPan);
       leftPan.connect(context.destination);
       rightPan.connect(context.destination);
-
       leftOsc.start();
       rightOsc.start();
-
       setAudioContext(context);
       setOscillators({ left: leftOsc, right: rightOsc, leftGain, rightGain });
       setIsPlaying(true);
-      
+     
       startTimer();
     } catch (error) {
       console.error('Audio error:', error);
       alert('Audio requires headphones to work properly');
     }
   };
-
   const stopAudio = () => {
     if (oscillators && audioContext) {
       try {
         oscillators.leftGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
         oscillators.rightGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
-        
+       
         setTimeout(() => {
           if (oscillators) {
             oscillators.left.stop();
@@ -252,12 +233,11 @@ const BinauralBeatsWizard = () => {
         console.error('Error stopping audio:', error);
       }
     }
-    
+   
     setIsPlaying(false);
     setIsPaused(false);
     stopTimer();
   };
-
   return (
     <div className="min-h-screen bg-white">
       {/* Ultra-minimal header */}
@@ -267,14 +247,13 @@ const BinauralBeatsWizard = () => {
         </h1>
         <p className="text-gray-500 font-light">Choose your focus</p>
       </div>
-
       <div className="max-w-4xl mx-auto px-6">
         {/* Apple-style effect selector */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12">
           {effects.map((effect) => {
             const Icon = effect.icon;
             const isSelected = selectedEffect === effect.id;
-            
+           
             return (
               <div
                 key={effect.id}
@@ -291,31 +270,31 @@ const BinauralBeatsWizard = () => {
                 }}
               >
                 <div className={`
-                  relative overflow-hidden rounded-2xl p-6 transition-all duration-300 
-                  ${isSelected 
-                    ? `bg-gradient-to-br ${effect.bgGradient} border-2 border-gray-200/60 shadow-sm` 
+                  relative overflow-hidden rounded-2xl p-6 transition-all duration-300
+                  ${isSelected
+                    ? `bg-gradient-to-br ${effect.bgGradient} border-2 border-gray-200/60 shadow-sm`
                     : 'bg-gray-50/50 hover:bg-gray-50 border-2 border-transparent'
                   }
                 `}>
                   {/* Subtle selection indicator */}
                   {isSelected && (
-                    <div 
+                    <div
                       className="absolute top-4 right-4 w-2 h-2 rounded-full"
                       style={{ backgroundColor: effect.color }}
                     />
                   )}
-                  
+                 
                   <div className="flex flex-col items-center text-center">
-                    <div 
+                    <div
                       className="w-8 h-8 rounded-full flex items-center justify-center mb-3 transition-all duration-300"
-                      style={{ 
+                      style={{
                         backgroundColor: isSelected ? effect.color : '#f3f4f6',
                         color: isSelected ? 'white' : '#6b7280'
                       }}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
-                    
+                   
                     <h3 className="font-medium text-gray-900 mb-1">{effect.title}</h3>
                     <p className="text-sm text-gray-500 mb-2">{effect.subtitle}</p>
                     <span className="text-xs text-gray-400 font-mono">{effect.frequency}</span>
@@ -325,7 +304,6 @@ const BinauralBeatsWizard = () => {
             );
           })}
         </div>
-
         {/* Minimal controls */}
         {selectedEffectData && (
           <div className="max-w-md mx-auto">
@@ -350,7 +328,6 @@ const BinauralBeatsWizard = () => {
                 />
               </div>
             </div>
-
             {/* Duration control */}
             <div className="mb-12">
               <div className="flex items-center justify-between mb-4">
@@ -372,7 +349,6 @@ const BinauralBeatsWizard = () => {
                 />
               </div>
             </div>
-
             {/* Player */}
             <div className="text-center">
               {/* Headphones reminder */}
@@ -383,13 +359,12 @@ const BinauralBeatsWizard = () => {
                   </div>
                 </div>
               )}
-
               {/* Main play button */}
               <div className="relative inline-block mb-6">
                 <button
                   onClick={togglePlayPause}
                   className={`
-                    w-20 h-20 rounded-full flex items-center justify-center text-white 
+                    w-20 h-20 rounded-full flex items-center justify-center text-white
                     transition-all duration-300 transform hover:scale-105 active:scale-95
                     shadow-lg hover:shadow-xl
                   `}
@@ -403,7 +378,7 @@ const BinauralBeatsWizard = () => {
                     <Play className="w-8 h-8 ml-1" />
                   )}
                 </button>
-                
+               
                 {/* Elegant progress ring */}
                 {isPlaying && timeRemaining > 0 && (
                   <svg className="absolute top-0 left-0 w-20 h-20 transform -rotate-90 pointer-events-none" viewBox="0 0 80 80">
@@ -424,7 +399,6 @@ const BinauralBeatsWizard = () => {
                   </svg>
                 )}
               </div>
-
               {/* Session info */}
               {isPlaying && (
                 <div className="space-y-3 mb-8">
@@ -436,7 +410,6 @@ const BinauralBeatsWizard = () => {
                   </div>
                 </div>
               )}
-
               {/* Volume control */}
               <div className="flex items-center gap-4 justify-center mb-8">
                 <Volume2 className="w-4 h-4 text-gray-400" />
@@ -463,7 +436,6 @@ const BinauralBeatsWizard = () => {
                 </div>
                 <span className="text-sm text-gray-400 w-8">{Math.round(binauralVolume * 100)}%</span>
               </div>
-
               {/* Stop button */}
               {isPlaying && (
                 <button
@@ -477,30 +449,7 @@ const BinauralBeatsWizard = () => {
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        .slider::-webkit-slider-thumb {
-          appearance: none;
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: white;
-          cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          border: 1px solid #e5e7eb;
-        }
-        .slider::-moz-range-thumb {
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: white;
-          cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          border: 1px solid #e5e7eb;
-        }
-      `}</style>
     </div>
   );
 };
-
 export default BinauralBeatsWizard;
