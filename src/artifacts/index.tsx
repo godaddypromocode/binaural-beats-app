@@ -1,25 +1,38 @@
 import { useState } from 'react';
 import { Brain, Moon, Focus, Heart, Zap, Palette, Volume2, Play, Pause } from 'lucide-react';
 
+type Config = {
+  carrierFreq: number;
+  binauralBeat: number;
+  sessionDuration: number;
+};
+
+type Oscillators = {
+  left: OscillatorNode;
+  right: OscillatorNode;
+  leftGain: GainNode;
+  rightGain: GainNode;
+} | null;
+
 const BinauralBeatsWizard = () => {
-  const [selectedEffect, setSelectedEffect] = useState('relaxation');
+  const [selectedEffect, setSelectedEffect] = useState<string>('relaxation');
  
-  const [config, setConfig] = useState({
+  const [config, setConfig] = useState<Config>({
     carrierFreq: 220,
     binauralBeat: 10,
     sessionDuration: 20
   });
   // Audio state
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [binauralVolume, setBinauralVolume] = useState(0.7);
-  const [audioContext, setAudioContext] = useState(null);
-  const [oscillators, setOscillators] = useState(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [binauralVolume, setBinauralVolume] = useState<number>(0.7);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [oscillators, setOscillators] = useState<Oscillators>(null);
  
   // Timer state
-  const [sessionTime, setSessionTime] = useState(20);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [timerInterval, setTimerInterval] = useState(null);
+  const [sessionTime, setSessionTime] = useState<number>(20);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
   const effects = [
     {
       id: 'relaxation',
@@ -95,7 +108,7 @@ const BinauralBeatsWizard = () => {
     }
   ];
   const selectedEffectData = effects.find(e => e.id === selectedEffect);
-  const updateConfig = (key: keyof typeof config, value: number) => {
+  const updateConfig = (key: keyof Config, value: number) => {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
   const formatTime = (seconds: number) => {
@@ -129,8 +142,8 @@ const BinauralBeatsWizard = () => {
   };
   const pauseAudio = () => {
     if (oscillators && oscillators.leftGain && oscillators.rightGain && !isPaused) {
-      oscillators.leftGain.gain.setValueAtTime(0, audioContext.currentTime);
-      oscillators.rightGain.gain.setValueAtTime(0, audioContext.currentTime);
+      oscillators.leftGain.gain.setValueAtTime(0, audioContext?.currentTime ?? 0);
+      oscillators.rightGain.gain.setValueAtTime(0, audioContext?.currentTime ?? 0);
       setIsPaused(true);
      
       if (timerInterval) {
@@ -141,8 +154,8 @@ const BinauralBeatsWizard = () => {
   };
   const resumeAudio = () => {
     if (oscillators && oscillators.leftGain && oscillators.rightGain && isPaused) {
-      oscillators.leftGain.gain.setValueAtTime(binauralVolume * 0.3, audioContext.currentTime);
-      oscillators.rightGain.gain.setValueAtTime(binauralVolume * 0.3, audioContext.currentTime);
+      oscillators.leftGain.gain.setValueAtTime(binauralVolume * 0.3, audioContext?.currentTime ?? 0);
+      oscillators.rightGain.gain.setValueAtTime(binauralVolume * 0.3, audioContext?.currentTime ?? 0);
       setIsPaused(false);
      
       const interval = setInterval(() => {
@@ -170,7 +183,8 @@ const BinauralBeatsWizard = () => {
   };
   const startAudio = () => {
     try {
-      const context = new (window.AudioContext || window.webkitAudioContext)();
+      const Context = window.AudioContext || (window as any).webkitAudioContext;
+      const context = new Context();
       if (context.state === 'suspended') {
         context.resume();
       }
@@ -421,8 +435,8 @@ const BinauralBeatsWizard = () => {
                       setBinauralVolume(newVolume);
                       if (oscillators?.leftGain && oscillators?.rightGain) {
                         try {
-                          oscillators.leftGain.gain.setValueAtTime(newVolume * 0.3, audioContext.currentTime);
-                          oscillators.rightGain.gain.setValueAtTime(newVolume * 0.3, audioContext.currentTime);
+                          oscillators.leftGain.gain.setValueAtTime(newVolume * 0.3, audioContext?.currentTime ?? 0);
+                          oscillators.rightGain.gain.setValueAtTime(newVolume * 0.3, audioContext?.currentTime ?? 0);
                         } catch (error) {
                           console.error('Volume error:', error);
                         }
